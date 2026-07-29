@@ -30,6 +30,12 @@ class FavoriteProvider extends ChangeNotifier {
     }
   }
 
+  /// Checks if a movie is favorited.
+  /// This method forwards to the existing `isFavorited` method for backward compatibility.
+  bool isFavorite(dynamic movieId) {
+    return isFavorited(movieId);
+  }
+
   bool isFavorited(dynamic movieId) {
     if (movieId == null) return false;
     return _favorites.any((movie) => movie.id.toString() == movieId.toString());

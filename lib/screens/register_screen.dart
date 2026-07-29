@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../utils/validators.dart';
+import '../widgets/auth/auth_header.dart';
+import '../widgets/auth/auth_input_field.dart';
+import '../widgets/auth/auth_submit_button.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -9,41 +14,35 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-  bool isLoading = false;
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  Future<void> register() async {
-    if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Passwords do not match."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
-    setState(() {
-      isLoading = true;
-    });
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    try {
-      await AuthService.register(
-        name: nameController.text,
-        email: emailController.text,
-        password: passwordController.text,
-        confirmPassword: confirmPasswordController.text,
-      );
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text,
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      setState(() {
-        isLoading = false;
-      });
-
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Registration successful! Please login."),
@@ -51,18 +50,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
       Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
-
-      final errorMessage = e is ApiException ? e.message : e.toString();
-
+    } else if (authProvider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
+          content: Text(authProvider.errorMessage!),
           backgroundColor: Colors.red,
         ),
       );
@@ -70,51 +61,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Register")),
-      body: Padding(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: const Text("Register Account", style: TextStyle(color: Colors.white)),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
           child: Column(
             children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "Name"),
+              const AuthHeader(
+                title: "Create Account",
+                subtitle: "Join Sastra Film and enjoy unlimited streaming",
               ),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: "Email"),
+              AuthInputField(
+                controller: _nameController,
+                labelText: "Name",
+                prefixIcon: Icons.person_outline,
+                validator: (val) => Validators.required(val, "Name"),
               ),
-              TextField(
-                controller: passwordController,
+              AuthInputField(
+                controller: _emailController,
+                labelText: "Email",
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: Icons.email_outlined,
+                validator: Validators.email,
+              ),
+              AuthInputField(
+                controller: _passwordController,
+                labelText: "Password",
                 obscureText: true,
-                decoration: const InputDecoration(labelText: "Password"),
+                prefixIcon: Icons.lock_outline,
+                validator: (val) => Validators.password(val, minLength: 6),
               ),
-              TextField(
-                controller: confirmPasswordController,
+              AuthInputField(
+                controller: _confirmPasswordController,
+                labelText: "Confirm Password",
                 obscureText: true,
-                decoration: const InputDecoration(labelText: "Confirm Password"),
+                prefixIcon: Icons.lock_reset_outlined,
+                validator: (val) => Validators.confirmPassword(val, _passwordController.text),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: isLoading ? null : register,
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text("Register"),
+              const SizedBox(height: 24),
+              AuthSubmitButton(
+                label: "Register",
+                isLoading: authProvider.isLoading,
+                onPressed: _handleRegister,
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: authProvider.isLoading ? null : () => Navigator.pop(context),
+                child: const Text(
+                  "Already have an account? Login",
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
             ],
           ),

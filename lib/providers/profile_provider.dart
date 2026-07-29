@@ -1,11 +1,16 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../services/api_client.dart';
 import '../services/profile_service.dart';
+import '../services/api_client.dart';
+import '../../models/user_subscription.dart';
+import '../../models/user_subscription.dart';
+import '../services/subscription_service.dart'; // <--- ADD THIS
+
 
 class ProfileProvider extends ChangeNotifier {
   final ProfileService _service;
+  UserSubscription? _subscription;
 
   ProfileProvider({ProfileService? service})
       : _service = service ?? ProfileService();
@@ -18,6 +23,7 @@ class ProfileProvider extends ChangeNotifier {
 
   // ─── Getters ────────────────────────────────────────────────────────────────
   UserProfile? get profile => _profile;
+  UserSubscription? get userSubscription => _subscription;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   String? get errorMessage => _errorMessage;
@@ -41,6 +47,13 @@ class ProfileProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // ─── Fetch subscription ────────────────────────────────────────────────────────
+  Future<void> fetchSubscription() async {
+    _subscription = await SubscriptionService.getCurrentSubscription();
+    notifyListeners();
+  }
+
 
   // ─── Update profile ───────────────────────────────────────────────────────────
   /// Returns `null` on success, or an error message string on failure.

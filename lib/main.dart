@@ -4,6 +4,7 @@ import 'screens/main_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'services/favorite_service.dart';
+import 'providers/auth_provider.dart';
 import 'providers/favorite_provider.dart';
 import 'providers/profile_provider.dart';
 
@@ -12,6 +13,7 @@ void main() {
     // Move Providers here to make them global across all routes/screens
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => FavoriteProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
